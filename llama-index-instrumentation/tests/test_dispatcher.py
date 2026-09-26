@@ -417,6 +417,29 @@ async def test_dispatcher_async_span_drop_args_with_instance(
     mock_span_exit.assert_not_called()
 
 
+@pytest.mark.asyncio
+@patch.object(Dispatcher, "span_exit")
+@patch.object(Dispatcher, "span_drop")
+async def test_dispatcher_future_exception_drops_span(
+    mock_span_drop: MagicMock,
+    mock_span_exit: MagicMock,
+):
+    @dispatcher.span
+    def func_future_exc() -> asyncio.Future:
+        async def raise_error() -> None:
+            raise value_error
+
+        return asyncio.create_task(raise_error())
+
+    with pytest.raises(ValueError, match="value error"):
+        await func_future_exc()
+    await asyncio.sleep(0)
+
+    mock_span_drop.assert_called_once()
+    assert mock_span_drop.call_args.kwargs["err"] is value_error
+    mock_span_exit.assert_not_called()
+
+
 @patch.object(Dispatcher, "span_exit")
 @patch.object(Dispatcher, "span_drop")
 @patch.object(Dispatcher, "span_enter")

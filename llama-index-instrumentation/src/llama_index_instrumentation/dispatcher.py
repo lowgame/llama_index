@@ -383,7 +383,7 @@ class Dispatcher(BaseModel):
                 context: Context,
             ) -> None:
                 try:
-                    result = None if future.exception() else future.result()
+                    result = future.result()
 
                     self.span_exit(
                         id_=span_id,
@@ -391,13 +391,12 @@ class Dispatcher(BaseModel):
                         instance=instance,
                         result=result,
                     )
-                    return result
+                    return
                 except BaseException as e:
                     self.event(SpanDropEvent(span_id=span_id, err_str=str(e)))
                     self.span_drop(
                         id_=span_id, bound_args=bound_args, instance=instance, err=e
                     )
-                    raise
                 finally:
                     try:
                         context.run(active_span_id.reset, token)
